@@ -21,6 +21,7 @@ model Department {
   resources        Resource[]
   tasks            Task[]            @relation("DepartmentTasks")
   reports          Report[]          @relation("DepartmentReports")
+  forums           Forum[]           @relation("DepartmentForums")
   status           DepartmentStatus  @default(ACTIVE)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -99,25 +100,25 @@ model Project {
 }
 
 model ProjectPhase {
-  id             Int               @id @default(autoincrement())
-  name           String
-  startDate      DateTime
-  endDate        DateTime?
-  status         PhaseStatus       @default(PENDING)
-  projectId      Int
-  project        Project           @relation(fields: [projectId], references: [id])
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id        Int         @id @default(autoincrement())
+  name      String
+  startDate DateTime
+  endDate   DateTime?
+  status    PhaseStatus @default(PENDING)
+  projectId Int
+  project   Project     @relation(fields: [projectId], references: [id])
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 }
 
 model Site {
-  id             Int               @id @default(autoincrement())
-  name           String
-  location       String
-  description    String?
-  projects       Project[]         @relation("SiteProjects")
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id          Int       @id @default(autoincrement())
+  name        String
+  location    String
+  description String?
+  projects    Project[] @relation("SiteProjects")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Resource {
@@ -157,6 +158,41 @@ model Report {
   updatedAt    DateTime   @updatedAt
   taskId       Int?
   Task         Task?      @relation(fields: [taskId], references: [id])
+}
+
+model Forum {
+  id             Int               @id @default(autoincrement())
+  name           String
+  description    String?
+  sections       ForumSection[]
+  departmentId   Int
+  department     Department        @relation("DepartmentForums", fields: [departmentId], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model ForumSection {
+  id             Int               @id @default(autoincrement())
+  name           String
+  description    String?
+  forumId        Int
+  forum          Forum             @relation(fields: [forumId], references: [id])
+  posts          ForumPost[]
+  accessLevel    AccessLevel       @default(PUBLIC)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model ForumPost {
+  id             Int               @id @default(autoincrement())
+  title          String
+  content        String
+  sectionId      Int
+  section        ForumSection      @relation(fields: [sectionId], references: [id])
+  authorId       Int
+  author         Employee?         @relation(fields: [authorId], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 }
 
 enum DepartmentStatus {
@@ -203,4 +239,10 @@ enum TaskStatus {
   IN_PROGRESS
   COMPLETED
   REJECTED
+}
+
+enum AccessLevel {
+  PUBLIC
+  PRIVATE
+  DEPARTMENT_ONLY
 }
