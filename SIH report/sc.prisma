@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Department {
+  id               Int               @id @default(autoincrement())
+  name             String            @unique
+  description      String?
+  location         String?
+  headId           Int?              @unique // Optional reference to an Officer
+  head             Officer?          @relation("DepartmentHead", fields: [headId], references: [id])
+  employees        Employee[]
+  officers         Officer[]
+  technicalExperts TechnicalExpert[]
+  projects         Project[]
+  resources        Resource[]
+  tasks            Task[]            @relation("DepartmentTasks")
+  reports          Report[]          @relation("DepartmentReports")
+  status           DepartmentStatus  @default(ACTIVE)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model Employee {
+  id           Int        @id @default(autoincrement())
+  name         String
+  email        String     @unique
+  password     String
+  phone        String
+  address      String?
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  projectId    Int?
+  projects     Project[]  @relation("ProjectEmployees")
+}
+
+model Officer {
+  id             Int         @id @default(autoincrement())
+  name           String
+  email          String      @unique
+  password       String
+  phone          String
+  address        String?
+  departmentId   Int
+  department     Department  @relation(fields: [departmentId], references: [id])
+  status         UserStatus  @default(ACTIVE)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  // Relation to head the department
+  headDepartment Department? @relation("DepartmentHead")
+  projectId      Int?
+  projects       Project[]   @relation("ProjectOfficers")
+}
+
+model TechnicalExpert {
+  id           Int        @id @default(autoincrement())
+  name         String
+  email        String     @unique
+  password     String
+  expertise    String[]
+  phone        String
+  address      String?
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  projectId    Int?
+  projects     Project[]  @relation("ProjectTechnicalExperts")
+}
+
+model Project {
+  id               Int               @id @default(autoincrement())
+  name             String
+  description      String?
+  location         String?
+  startDate        DateTime
+  endDate          DateTime?
+  status           ProjectStatus     @default(PLANNING)
+  budget           Float
+  departmentId     Int
+  department       Department        @relation(fields: [departmentId], references: [id])
+  officers         Officer[]         @relation("ProjectOfficers")
+  technicalExperts TechnicalExpert[] @relation("ProjectTechnicalExperts")
+  employees        Employee[]        @relation("ProjectEmployees")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model Resource {
+  id           Int            @id @default(autoincrement())
+  name         String
+  description  String?
+  quantity     Int
+  type         ResourceType
+  departmentId Int
+  department   Department     @relation(fields: [departmentId], references: [id])
+  status       ResourceStatus @default(AVAILABLE)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Task {
+  id          Int          @id @default(autoincrement())
+  name        String
+  description String?
+  startDate   DateTime
+  status      TaskStatus   @default(PENDING)
+  departments Department[] @relation("DepartmentTasks")
+  reports     Report[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Report {
+  id           Int        @id @default(autoincrement())
+  name         String
+  title        String
+  description  String?
+  date         DateTime
+  departmentId Int
+  department   Department @relation("DepartmentReports", fields: [departmentId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  taskId       Int?
+  Task         Task?      @relation(fields: [taskId], references: [id])
+}
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProjectStatus {
+  ON_GOING
+  COMPLETED
+  REJECTED
+  PLANNING
+  ON_HOLD
+}
+
+enum ResourceType {
+  HUMAN
+  TECHNICAL
+  DATA
+  OTHER
+}
+
+enum ResourceStatus {
+  AVAILABLE
+  IN_USE
+  REPAIRING
+  DISPOSED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
