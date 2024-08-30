@@ -90,9 +90,34 @@ model Project {
   department       Department        @relation(fields: [departmentId], references: [id])
   officers         Officer[]         @relation("ProjectOfficers")
   technicalExperts TechnicalExpert[] @relation("ProjectTechnicalExperts")
+  siteId           Int
+  site             Site              @relation("SiteProjects", fields: [siteId], references: [id])
+  phases           ProjectPhase[]
   employees        Employee[]        @relation("ProjectEmployees")
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+}
+
+model ProjectPhase {
+  id             Int               @id @default(autoincrement())
+  name           String
+  startDate      DateTime
+  endDate        DateTime?
+  status         PhaseStatus       @default(PENDING)
+  projectId      Int
+  project        Project           @relation(fields: [projectId], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model Site {
+  id             Int               @id @default(autoincrement())
+  name           String
+  location       String
+  description    String?
+  projects       Project[]         @relation("SiteProjects")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 }
 
 model Resource {
@@ -149,6 +174,13 @@ enum ProjectStatus {
   COMPLETED
   REJECTED
   PLANNING
+  ON_HOLD
+}
+
+enum PhaseStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
   ON_HOLD
 }
 
