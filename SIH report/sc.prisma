@@ -52,6 +52,7 @@ model Officer {
   address        String?
   departmentId   Int
   department     Department  @relation(fields: [departmentId], references: [id])
+  forumPosts     ForumPost[]
   status         UserStatus  @default(ACTIVE)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -190,7 +191,7 @@ model ForumPost {
   sectionId      Int
   section        ForumSection      @relation(fields: [sectionId], references: [id])
   authorId       Int
-  author         Employee?         @relation(fields: [authorId], references: [id])
+  author         Officer?         @relation(fields: [authorId], references: [id])
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 }
