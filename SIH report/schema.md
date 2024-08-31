@@ -93,3 +93,8 @@
 2. description
 4. date
 5. department
+
+
+
+### Admin
+1. Registering departments
