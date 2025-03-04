@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -35,23 +36,22 @@ int main() {
   cin >> m;
 
   vector<int> largerArr(n, 0);
-  for (int i = 0; i < n; i++) {
+  cout << "Enter the elements :" << endl;
+  for (int i = 0; i < n; i++)
     cin >> largerArr[i];
-  }
+
   double n3 = (double)n / m;
   int size_of_subarr = ceil(n3);
 
-  vector<vector<int>> mat(m, vector<int>(size_of_subarr, 0));
+  vector<vector<int>> mat(m);
 
-  for (int i = 0; i < n; i++) {
-    for (int j = 0; j < m; j++) {
-      for (int k = 0; k < size_of_subarr; k++) {
-        mat[j][k] = largerArr[i];
-      }
-    }
-  }
+  for (int i = 0; i < n; i++)
+    mat[i / size_of_subarr].push_back(largerArr[i]);
 
-  while (mat.size() != 1) {
+  // for (int i = 0; i < m; i++)
+  //   sort(mat[i].begin(), mat[0].end());
+
+  while (mat.size() > 1) {
     vector<int> arr1 = mat.back();
     mat.pop_back();
     vector<int> arr2 = mat.back();
