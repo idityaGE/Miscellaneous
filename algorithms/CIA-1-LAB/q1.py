@@ -43,7 +43,6 @@ def strassen(A, B):
         return C
 
 
-# check if the given matrix is square and multiple of 2 if not then return nearest power 2
 def next_power_of_2(n):
     power = 2
     while power < n:
@@ -53,7 +52,6 @@ def next_power_of_2(n):
 
 # pad the matrix with zeros if not square and multiple of 2
 def pad(matrix, new_size):
-    n = max(matrix.shape)
     new_matrix = np.zeros((new_size, new_size), dtype=matrix.dtype)
     new_matrix[: matrix.shape[0], : matrix.shape[1]] = matrix
     return new_matrix

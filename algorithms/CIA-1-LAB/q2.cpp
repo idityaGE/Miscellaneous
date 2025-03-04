@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -25,12 +26,30 @@ vector<int> merge(vector<int> &arr1, vector<int> &arr2) {
 }
 
 int main() {
-  vector<vector<int>> mat = {
-      {2, 5, 6, 8, 9},
-      {4, 7, 9},
-      {1, 2, 2, 4, 8},
-      {1, 1, 1, 1, 5}
-    };
+  int n;
+  int m;
+  cout << "No of elements in larger arr :";
+  cin >> n;
+
+  cout << "No of sub arr :";
+  cin >> m;
+
+  vector<int> largerArr(n, 0);
+  for (int i = 0; i < n; i++) {
+    cin >> largerArr[i];
+  }
+  double n3 = (double)n / m;
+  int size_of_subarr = ceil(n3);
+
+  vector<vector<int>> mat(m, vector<int>(size_of_subarr, 0));
+
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < m; j++) {
+      for (int k = 0; k < size_of_subarr; k++) {
+        mat[j][k] = largerArr[i];
+      }
+    }
+  }
 
   while (mat.size() != 1) {
     vector<int> arr1 = mat.back();
