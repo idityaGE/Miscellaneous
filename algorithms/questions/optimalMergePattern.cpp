@@ -5,6 +5,7 @@ using namespace std;
 
 int minComputation(vector<int> &files) {
   priority_queue<int, vector<int>, greater<int> > pq;
+
   for (auto file : files)
     pq.push(file);
 
@@ -22,5 +23,11 @@ int minComputation(vector<int> &files) {
 }
 
 int main() {
+  vector<int> files = {23, 1, 7, 14, 9, 5, 19};
+
+  int bagSize = minComputation(files);
+
+  cout << "Minimum Bag size required :" << bagSize << endl;
+
   return 0;
 }

@@ -29,6 +29,7 @@ vector<int> merge(vector<int> &arr1, vector<int> &arr2) {
 int main() {
   int n;
   int m;
+
   cout << "No of elements in larger arr :";
   cin >> n;
 
@@ -48,8 +49,8 @@ int main() {
   for (int i = 0; i < n; i++)
     mat[i / size_of_subarr].push_back(largerArr[i]);
 
-  // for (int i = 0; i < m; i++)
-  //   sort(mat[i].begin(), mat[0].end());
+  for (int i = 0; i < m; i++)
+    sort(mat[i].begin(), mat[i].end());
 
   while (mat.size() > 1) {
     vector<int> arr1 = mat.back();
@@ -61,9 +62,8 @@ int main() {
     mat.push_back(temp);
   }
 
-  for (int i = 0; i < mat[0].size(); i++) {
+  for (int i = 0; i < mat[0].size(); i++)
     cout << mat[0][i] << " ";
-  }
-
+  
   return 0;
 }
