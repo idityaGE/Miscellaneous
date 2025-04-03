@@ -38,7 +38,6 @@ func totalNQueens(n int) int {
 	return totalResult
 }
 
-// This function runs in a goroutine and computes results for a specific first-row placement
 func backtrackParallel(row, n, cols, diag1, diag2 int, result *int) {
 	if row == n {
 		*result++
@@ -54,12 +53,69 @@ func backtrackParallel(row, n, cols, diag1, diag2 int, result *int) {
 }
 
 func main() {
-	n := 12
+	n := 16
 
-	// Run the parallel version
 	start := time.Now()
-	result := totalNQueens(n)
+	// result := totalNQueens(n)
+	result := SolveNQueens(n)
 	elapsed := time.Since(start)
-	fmt.Printf("Parallel result for %d queens: %d\n", n, result)
+	fmt.Printf("Parallel result for %d queens: %d\n", n, len(result))
 	fmt.Printf("Parallel time taken: %v\n", elapsed)
+}
+
+func SolveNQueens(n int) [][]int {
+	board := make([]int, n)
+	for i := range board {
+		board[i] = -1
+	}
+	var result [][]int
+	backtrack(0, &result, board, n)
+	return result
+}
+
+func backtrack(row int, result *[][]int, board []int, n int) {
+	var wg sync.WaitGroup
+	var mutex sync.Mutex
+
+	if row == n {
+		temp := make([]int, n)
+		copy(temp, board)
+		mutex.Lock()
+		*result = append(*result, temp)
+		mutex.Unlock()
+		return
+
+	}
+
+	for col := range n {
+		if isValid(board, row, col, n) {
+			board[row] = col
+			wg.Add(1)
+			go backtrack(row+1, result, board, n)
+			wg.Done()
+			board[row] = -1
+		}
+	}
+}
+
+func isValid(board []int, row, col, n int) bool {
+	// for upper col check
+	for i := range row {
+		if board[i] == col {
+			return false
+		}
+	}
+	// upper diagonal left
+	for i, j := row-1, col-1; i >= 0 && j >= 0; i, j = i-1, j-1 {
+		if board[i] == j {
+			return false
+		}
+	}
+	// upper diagonal right
+	for i, j := row-1, col+1; i >= 0 && j < n; i, j = i-1, j+1 {
+		if board[i] == j {
+			return false
+		}
+	}
+	return true
 }
