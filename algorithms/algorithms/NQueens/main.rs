@@ -65,7 +65,7 @@ fn backtrack_parallel(row: i32, n: i32, cols: i32, diag1: i32, diag2: i32, resul
 }
 
 fn main() {
-    let n = 17;
+    let n = 16;
 
     // Run the parallel version
     let start = Instant::now();
