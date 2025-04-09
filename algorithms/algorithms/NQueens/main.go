@@ -2,14 +2,19 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 func totalNQueens(n int) int {
-	var totalResult int
+	var totalResult int64 = 0
 	var wg sync.WaitGroup
-	var mutex sync.Mutex
+
+	// Use all available CPU cores
+	numWorkers := runtime.NumCPU()
+	fmt.Printf("Using %d CPU cores\n", numWorkers)
 
 	// Get all possible positions for the first row
 	availablePositions := (1 << n) - 1
@@ -27,14 +32,13 @@ func totalNQueens(n int) int {
 			partialResult := 0
 			backtrackParallel(1, n, pos, pos<<1, pos>>1, &partialResult)
 
-			// Safely update the total result
-			mutex.Lock()
-			totalResult += partialResult
+			// Safely update the total result with atomic operation
+			atomic.AddInt64(&totalResult, int64(partialResult))
 		}(position)
 	}
 
 	wg.Wait()
-	return totalResult
+	return int(totalResult)
 }
 
 func backtrackParallel(row, n, cols, diag1, diag2 int, result *int) {
@@ -52,12 +56,15 @@ func backtrackParallel(row, n, cols, diag1, diag2 int, result *int) {
 }
 
 func main() {
-	n := 4
+	// Allow testing different board sizes
+	sizes := 16
+
+	fmt.Printf("\nSolving for %dx%d board...\n", sizes, sizes)
 
 	start := time.Now()
-	result := totalNQueens(n)
+	result := totalNQueens(sizes)
 	elapsed := time.Since(start)
 
-	fmt.Printf("Result for %d queens: %d\n", n, result)
+	fmt.Printf("Result for %d queens: %d\n", sizes, result)
 	fmt.Printf("Time taken: %v\n", elapsed)
 }
