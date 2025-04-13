@@ -4,7 +4,7 @@ import (
     "fmt"
     "runtime"
     "sync"
-    "sync/atomic"
+    // "sync/atomic"
     "time"
 )
 
@@ -27,15 +27,27 @@ func solveNQueensParallel(n int) int64 {
         return 0
     }
     
+    // Set maximum CPU usage
     numCPU := runtime.NumCPU()
     runtime.GOMAXPROCS(numCPU)
     fmt.Printf("Using %d CPU cores\n", numCPU)
 
+    // Using symmetry optimization for massive speedup
     var totalSolutions int64 = 0
     var wg sync.WaitGroup
 
-    // Only for first row, we'll split the work
-    for col := 0; col < n; col++ {
+    // For even values of n, we can exploit full symmetry
+    // For odd values, the middle column breaks symmetry
+    limit := n / 2
+    if n%2 == 1 {
+        limit++
+    }
+
+    // Create a channel for workers to report results
+    results := make(chan int64, limit)
+    
+    // Launch workers
+    for col := 0; col < limit; col++ {
         wg.Add(1)
         go func(startCol int) {
             defer wg.Done()
@@ -45,97 +57,61 @@ func solveNQueensParallel(n int) int64 {
             
             // Count solutions starting with this column
             solutions := countSolutions(1, board, board<<1, board>>1, n)
-            atomic.AddInt64(&totalSolutions, solutions)
+            
+            // Apply symmetry factor
+            factor := int64(2)
+            if n%2 == 1 && startCol == n/2 {
+                factor = 1 // Middle column in odd-sized board has no symmetry
+            }
+            
+            results <- solutions * factor
         }(col)
     }
-
-    wg.Wait()
+    
+    // Collect results in a separate goroutine
+    go func() {
+        wg.Wait()
+        close(results)
+    }()
+    
+    // Sum up all results
+    for res := range results {
+        totalSolutions += res
+    }
+    
     return totalSolutions
 }
 
-// Recursive approach - simpler and likely more efficient than the stack-based one
+// Optimized solution counter - rewritten for maximum performance
 func countSolutions(row int, cols, leftDiag, rightDiag uint64, n int) int64 {
+    // Base case - we've placed queens in all rows
     if row == n {
         return 1
     }
     
-    // All occupied positions
-    occupied := cols | leftDiag | rightDiag
-    // All possible positions for current row (1 bits represent available positions)
-    allPositions := uint64((1 << n) - 1)
-    // Available positions
-    validPositions := ^occupied & allPositions
-    
     var count int64 = 0
+    
+    // Pre-compute the mask for all valid positions in this row
+    allPositions := uint64((1 << n) - 1)
+    validPositions := ^(cols | leftDiag | rightDiag) & allPositions
     
     // Try each valid position
     for validPositions != 0 {
-        // Get rightmost valid position
+        // Get the least significant 1-bit (rightmost valid position)
         pos := validPositions & -validPositions
-        // Remove this position from validPositions
+        
+        // Remove this position from valid positions
         validPositions ^= pos
         
-        // Add a solution for each valid position in the next row
+        // Recursively count solutions with this queen placement
         count += countSolutions(
             row + 1,
-            cols | pos,                 // Update columns
-            (leftDiag | pos) << 1,      // Update left diagonal
-            (rightDiag | pos) >> 1,     // Update right diagonal
+            cols | pos,           // Update occupied columns
+            (leftDiag | pos) << 1, // Update left diagonal constraint
+            (rightDiag | pos) >> 1, // Update right diagonal constraint
             n,
         )
     }
     
     return count
-}
-
-// Function to return all solutions as 2D array if needed
-func SolveNQueens(n int) [][]int {
-    if n > 12 {
-        fmt.Println("Warning: Generating all solutions for n > 12 may be very memory intensive")
-    }
-    
-    var solutions [][]int
-    if n <= 0 {
-        return solutions
-    }
-    
-    // For storing the board state - index is row, value is column
-    board := make([]int, n)
-    for i := range board {
-        board[i] = -1
-    }
-    
-    // Use backtracking to find all solutions
-    generateSolutions(0, board, &solutions, n)
-    return solutions
-}
-
-func generateSolutions(row int, board []int, solutions *[][]int, n int) {
-    if row == n {
-        // Found a solution, copy it
-        solution := make([]int, n)
-        copy(solution, board)
-        *solutions = append(*solutions, solution)
-        return
-    }
-    
-    for col := 0; col < n; col++ {
-        if isSafe(board, row, col) {
-            board[row] = col
-            generateSolutions(row+1, board, solutions, n)
-            board[row] = -1  // Backtrack
-        }
-    }
-}
-
-func isSafe(board []int, row, col int) bool {
-    for i := 0; i < row; i++ {
-        // Check if same column or same diagonal
-        if board[i] == col || 
-           board[i] == col-(row-i) || 
-           board[i] == col+(row-i) {
-            return false
-        }
-    }
-    return true
 }
