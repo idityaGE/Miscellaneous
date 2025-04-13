@@ -1,196 +1,141 @@
 package main
 
 import (
-	"fmt"
-	"runtime"
-	"sync"
-	"sync/atomic"
-	"time"
+    "fmt"
+    "runtime"
+    "sync"
+    "sync/atomic"
+    "time"
 )
 
 func main() {
-	n := 16
+    var n int
 
-	start := time.Now()
-	count := solveNQueensParallel(n)
-	duration := time.Since(start)
+    fmt.Print("Enter the n: ")
+    fmt.Scanln(&n)
 
-	fmt.Printf("Result for %d queens: %d\n", n, count)
-	fmt.Printf("Time taken: %v\n", duration)
+    start := time.Now()
+    count := solveNQueensParallel(n)
+    elapsed := time.Since(start)
+
+    fmt.Printf("Result for %d queens: %d\n", n, count)
+    fmt.Printf("Time taken: %v\n", elapsed)
 }
 
 func solveNQueensParallel(n int) int64 {
-	numCPU := runtime.NumCPU()
-	fmt.Printf("Using %d CPU cores\n", numCPU)
+    if n <= 0 {
+        return 0
+    }
+    
+    numCPU := runtime.NumCPU()
+    runtime.GOMAXPROCS(numCPU)
+    fmt.Printf("Using %d CPU cores\n", numCPU)
 
-	var totalSolutions int64 = 0
-	var wg sync.WaitGroup
-	
-	// For n ≥ 12, we can use a lookup table for the first two rows to avoid redundant calculations
-	if n >= 12 {
-		// Process jobs in batches for better load balancing
-		batchSize := 8
-		jobs := make(chan int, n/2+1)
-		
-		// Create job queue for first column positions (exploiting symmetry)
-		limit := n / 2
-		if n%2 == 1 {
-			limit++
-		}
-		
-		for col := 0; col < limit; col++ {
-			jobs <- col
-		}
-		close(jobs)
-		
-		// Create worker pool
-		for i := 0; i < numCPU; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				
-				// Process jobs in batches
-				batch := make([]int, 0, batchSize)
-				
-				for {
-					// Get a batch of jobs
-					batch = batch[:0] // Clear batch
-					for j := 0; j < batchSize; j++ {
-						col, ok := <-jobs
-						if !ok {
-							break
-						}
-						batch = append(batch, col)
-					}
-					
-					if len(batch) == 0 {
-						break
-					}
-					
-					// Process this batch
-					var localCount int64
-					for _, startCol := range batch {
-						mask := uint64(1) << startCol
-						
-						// Precomputed first row constraint
-						col := mask
-						ld := mask << 1  // left diagonal
-						rd := mask >> 1  // right diagonal
-						
-						// Factor for symmetry
-						factor := int64(2)
-						if n%2 == 1 && startCol == n/2 {
-							factor = 1 // Middle column in odd board
-						}
-						
-						// Use an optimized solver that avoids recursion
-						localCount += factor * solveWithBitmaskNonRecursive(1, col, ld, rd, n)
-					}
-					
-					atomic.AddInt64(&totalSolutions, localCount)
-				}
-			}()
-		}
-	} else {
-		// For smaller board sizes, use the original approach
-		limit := n / 2
-		if n%2 == 1 {
-			limit++
-		}
-		
-		for col := 0; col < limit; col++ {
-			wg.Add(1)
-			go func(startCol int) {
-				defer wg.Done()
-				
-				mask := uint64(1) << startCol
-				
-				// Precomputed first row constraint
-				col := mask
-				ld := mask << 1  // left diagonal
-				rd := mask >> 1  // right diagonal
-				
-				// Factor for symmetry
-				factor := int64(2)
-				if n%2 == 1 && startCol == n/2 {
-					factor = 1 // Middle column in odd board
-				}
-				
-				localCount := factor * solveWithBitmaskNonRecursive(1, col, ld, rd, n)
-				atomic.AddInt64(&totalSolutions, localCount)
-			}(col)
-		}
-	}
+    var totalSolutions int64 = 0
+    var wg sync.WaitGroup
 
-	wg.Wait()
-	return totalSolutions
+    // Only for first row, we'll split the work
+    for col := 0; col < n; col++ {
+        wg.Add(1)
+        go func(startCol int) {
+            defer wg.Done()
+            
+            // Create the initial board with first queen placed
+            board := uint64(1) << startCol
+            
+            // Count solutions starting with this column
+            solutions := countSolutions(1, board, board<<1, board>>1, n)
+            atomic.AddInt64(&totalSolutions, solutions)
+        }(col)
+    }
+
+    wg.Wait()
+    return totalSolutions
 }
 
-// Non-recursive implementation using a state machine approach
-func solveWithBitmaskNonRecursive(startRow int, col, ld, rd uint64, n int) int64 {
-	var count int64
-	
-	// Pre-allocate all row states to avoid allocation in the search loop
-	type State struct {
-		row int
-		col uint64
-		ld  uint64
-		rd  uint64
-		pos uint64
-	}
-	
-	// Use a manually managed stack to avoid function call overhead
-	stack := make([]State, n+1)
-	top := 0
-	
-	// Initialize first state
-	allOnes := uint64((1 << n) - 1)
-	stack[0] = State{
-		row: startRow,
-		col: col,
-		ld:  ld,
-		rd:  rd,
-		pos: 0, // Will be calculated on first iteration
-	}
-	
-	for top >= 0 {
-		state := &stack[top]
-		
-		if state.row == n {
-			// Found a solution
-			count++
-			top--
-			continue
-		}
-		
-		if state.pos == 0 {
-			// First time processing this row, calculate valid positions
-			state.pos = ^(state.col | state.ld | state.rd) & allOnes
-		}
-		
-		if state.pos == 0 {
-			// No valid positions left, backtrack
-			top--
-			continue
-		}
-		
-		// Get the rightmost valid position
-		p := state.pos & -state.pos
-		// Remove this position from valid positions
-		state.pos ^= p
-		
-		// Prepare next state
-		top++
-		if top < len(stack) {
-			stack[top] = State{
-				row: state.row + 1,
-				col: state.col | p,
-				ld:  (state.ld | p) << 1,
-				rd:  (state.rd | p) >> 1,
-				pos: 0,
-			}
-		}
-	}
-	
-	return count
+// Recursive approach - simpler and likely more efficient than the stack-based one
+func countSolutions(row int, cols, leftDiag, rightDiag uint64, n int) int64 {
+    if row == n {
+        return 1
+    }
+    
+    // All occupied positions
+    occupied := cols | leftDiag | rightDiag
+    // All possible positions for current row (1 bits represent available positions)
+    allPositions := uint64((1 << n) - 1)
+    // Available positions
+    validPositions := ^occupied & allPositions
+    
+    var count int64 = 0
+    
+    // Try each valid position
+    for validPositions != 0 {
+        // Get rightmost valid position
+        pos := validPositions & -validPositions
+        // Remove this position from validPositions
+        validPositions ^= pos
+        
+        // Add a solution for each valid position in the next row
+        count += countSolutions(
+            row + 1,
+            cols | pos,                 // Update columns
+            (leftDiag | pos) << 1,      // Update left diagonal
+            (rightDiag | pos) >> 1,     // Update right diagonal
+            n,
+        )
+    }
+    
+    return count
+}
+
+// Function to return all solutions as 2D array if needed
+func SolveNQueens(n int) [][]int {
+    if n > 12 {
+        fmt.Println("Warning: Generating all solutions for n > 12 may be very memory intensive")
+    }
+    
+    var solutions [][]int
+    if n <= 0 {
+        return solutions
+    }
+    
+    // For storing the board state - index is row, value is column
+    board := make([]int, n)
+    for i := range board {
+        board[i] = -1
+    }
+    
+    // Use backtracking to find all solutions
+    generateSolutions(0, board, &solutions, n)
+    return solutions
+}
+
+func generateSolutions(row int, board []int, solutions *[][]int, n int) {
+    if row == n {
+        // Found a solution, copy it
+        solution := make([]int, n)
+        copy(solution, board)
+        *solutions = append(*solutions, solution)
+        return
+    }
+    
+    for col := 0; col < n; col++ {
+        if isSafe(board, row, col) {
+            board[row] = col
+            generateSolutions(row+1, board, solutions, n)
+            board[row] = -1  // Backtrack
+        }
+    }
+}
+
+func isSafe(board []int, row, col int) bool {
+    for i := 0; i < row; i++ {
+        // Check if same column or same diagonal
+        if board[i] == col || 
+           board[i] == col-(row-i) || 
+           board[i] == col+(row-i) {
+            return false
+        }
+    }
+    return true
 }

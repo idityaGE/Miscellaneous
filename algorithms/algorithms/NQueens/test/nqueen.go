@@ -6,16 +6,19 @@ import (
 )
 
 func main() {
-	n := 4
+	var n int
+
+	fmt.Print("Enter the n : ")
+	fmt.Scanln(&n)
 
 	start := time.Now()
 	res := SolveNQueens(n)
 	elapsed := time.Since(start)
 
-	fmt.Println("all the solutions :")
-	for _, arr := range res {
-		fmt.Printf("%d\n", arr)
-	}
+	// fmt.Println("all the solutions :")
+	// for _, arr := range res {
+	// 	fmt.Printf("%d\n", arr)
+	// }
 
 	fmt.Printf("Result for %d queens: %d\n", n, len(res))
 	fmt.Printf("Time taken: %v\n", elapsed)
@@ -52,8 +55,8 @@ func isValid(board []int, row, col, n int) bool {
 	// for upper col check
 	for i := range row {
 		if board[i] == col || // Same column
-		   board[i] == col-(row-i) || // Upper-left diagonal
-		   board[i] == col+(row-i) { // Upper-right diagonal
+			board[i] == col-(row-i) || // Upper-left diagonal
+			board[i] == col+(row-i) { // Upper-right diagonal
 			return false
 		}
 	}
