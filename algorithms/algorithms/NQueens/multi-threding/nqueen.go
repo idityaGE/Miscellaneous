@@ -4,7 +4,6 @@ import (
     "fmt"
     "runtime"
     "sync"
-    // "sync/atomic"
     "time"
 )
 
@@ -47,7 +46,7 @@ func solveNQueensParallel(n int) int64 {
     results := make(chan int64, limit)
     
     // Launch workers
-    for col := 0; col < limit; col++ {
+    for col := range limit {
         wg.Add(1)
         go func(startCol int) {
             defer wg.Done()
