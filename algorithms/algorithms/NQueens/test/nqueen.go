@@ -52,7 +52,6 @@ func backtrack(row int, result *[][]int, board []int, n int) {
 }
 
 func isValid(board []int, row, col, n int) bool {
-	// for upper col check
 	for i := range row {
 		if board[i] == col || // Same column
 			board[i] == col-(row-i) || // Upper-left diagonal
