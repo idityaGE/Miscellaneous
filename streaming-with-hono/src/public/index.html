@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Streaming Demo</title>
+  <style>
+    #response {
+      white-space: pre-wrap;
+      font-family: sans-serif;
+      min-height: 100px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Streaming Response Demo</h1>
+    <div id="response"></div>
+    <button onclick="fetchStreamingResponse()">Generate Response</button>
+  </div>
+
+  <script>
+    async function fetchStreamingResponse() {
+      const responseElement = document.getElementById('response');
+      responseElement.textContent = '';
+
+      try {
+        const response = await fetch('/stream');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const text = decoder.decode(value);
+          responseElement.textContent += text;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        responseElement.textContent = 'Error fetching streaming response';
+      }
+    }
+  </script>
+</body>
+
+</html>
